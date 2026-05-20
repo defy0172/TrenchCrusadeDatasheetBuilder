@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trench Crusade Datasheet Builder</title>
+    
+    <!-- 引入 html2canvas 用于截图 -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+    <!-- 引入网络字体 (英文字母/数字, 思源宋体, 思源黑体, 霞鹜文楷) -->
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;0,900;1,400&family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-lite-webfont@1.1.0/style.css">
+
+    <style>
+        /* 全局默认字体设置：优先英文字体(用于数字/字母)，其次思源黑体 */
+        body {
+            font-family: 'Merriweather', 'Noto Sans SC', sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        /* 左侧控制面板区 */
+        .controls {
+            flex: 1;
+            min-width: 320px;
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .controls h2 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; font-size: 18px;}
+        .controls label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 13px;
+            color: #333;
+        }
+        .controls input, .controls textarea, .controls select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .controls textarea { resize: vertical; }
+        
+        .flex-row { display: flex; gap: 10px; align-items: center;}
+        .flex-row input, .flex-row select { flex: 1; margin-top: 5px; }
+
+        /* 动态能力输入框容器 */
+        .ability-group {
+            background: #f9f9f9;
+            border: 1px dashed #bbb;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+            position: relative;
+        }
+        .btn-add, .btn-del {
+            border: none; border-radius: 4px; cursor: pointer; font-size: 12px;
+        }
+        .btn-add { background-color: #4facfe; color: white; width: 100%; padding: 10px; margin-top: 15px; font-weight: bold;}
+        .btn-del { background-color: #ff4d4f; color: white; padding: 4px 8px; position: absolute; top: 10px; right: 10px; }
+
+        .btn-export {
+            margin-top: 30px; width: 100%; padding: 15px;
+            background-color: #52c41a; color: white; border: none;
+            border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer;
+        }
+        .btn-export:hover { background-color: #389e0d; }
+
+        /* ====== 右侧卡片预览区 ====== */
+        .preview-container {
+            flex: 2;
+            min-width: 650px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .card {
+            background-color: white;
+            width: 650px; 
+            padding: 40px;
+            box-sizing: border-box;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        /* 标题行 */
+        .card-header {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 12px;
+            font-family: 'Merriweather', 'Noto Serif SC', serif;
+            color: #000;
+        }
+        .card-limit { font-size: 24px; font-weight: 900; margin-right: 12px; letter-spacing: 1px; }
+        .card-name { font-size: 28px; font-weight: 900; letter-spacing: 2px; }
+        .card-separator { margin: 0 15px; font-weight: bold; font-size: 24px;}
+        .card-cost { font-size: 22px; font-weight: 900; display: flex; align-items: baseline;}
+        .card-cost-icon { font-size: 18px; margin-left: 4px; }
+
+        /* 背景故事/Lore 通用样式 (霞鹜文楷) */
+        .lore-text {
+            font-family: 'Merriweather', 'LXGW WenKai Lite', cursive;
+            font-style: italic;
+            color: #53708b;
+        }
+
+        .card-main-lore {
+            font-size: 14.5px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            text-align: justify;
+        }
+
+        /* 数据表格 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        th, td { text-align: left; padding: 6px 10px; border-left: 1px solid #fff; border-right: 1px solid #fff;}
+        th { color: #b22222; font-weight: bold; background-color: #e6e6e6; }
+        td { background-color: #f2f2f2; font-weight: 500; }
+
+        /* 底部信息行 */
+        .info-row { display: flex; margin-bottom: 15px; font-size: 14px; line-height: 1.6; }
+        .info-label { font-weight: bold; width: 65px; flex-shrink: 0; color: #000; }
+        .info-content { flex: 1; color: #000; }
+
+        /* 能力列表 */
+        .ability-item { margin-bottom: 6px; }
+        .ability-icon { color: #b22222; font-weight: bold; margin-right: 5px; font-size: 16px; }
+        .ability-name { color: #b22222; font-weight: bold; margin-right: 3px; }
+
+        /* 导入的图片区 */
+        .card-image-container {
+            margin-top: 20px;
+            text-align: center;
+            display: none; /* 默认隐藏，上传图片后显示 */
+        }
+        .card-image-container img {
+            max-width: 100%;
+            max-height: 450px;
+            object-fit: contain;
+        }
+
+        /* 水印 */
+        .watermark {
+            margin-top: 30px;
+            text-align: right;
+            font-size: 10px;
+            color: #ccc;
+            font-family: 'Merriweather', sans-serif;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 左侧输入区 -->
+    <div class="controls">
+        <h2>基础信息</h2>
+        
+        <label>限制数量 (如: 0-6)</label>
+        <input type="text" id="in-limit" value="0-6" oninput="updateCard()">
+
+        <div style="display:flex; gap:10px; align-items:flex-end;">
+            <div style="flex:2;">
+                <label>花费数值</label>
+                <input type="text" id="in-cost" value="55" oninput="updateCard()">
+            </div>
+            <div style="flex:1;">
+                <label>货币类型</label>
+                <select id="in-currency" onchange="updateCard()">
+                    <option value="✪">✪ 杜卡特</option>
+                    <option value="☼">☼ 荣誉点</option>
+                </select>
+            </div>
+        </div>
+
+        <label>兵种名称</label>
+        <input type="text" id="in-name" value="耶尼切里" oninput="updateCard()">
+        
+        <label>背景故事 (Lore)</label>
+        <textarea id="in-lore" style="height: 100px;" oninput="updateCard()">近卫军是苏丹国的精锐战士，从小就接受战争艺术的培养。他们是在对铁壁以北和以东荒凉边界的突击中被带回的，从小便接受严格的武术训练和思想灌输。在战场上，近卫军擅长发动毁灭性的反冲锋，粉碎敌人的精锐编队，并充当高级人物的护卫。</textarea>
+        
+        <h2>属性数据</h2>
+        <div class="flex-row">
+            <input type="text" placeholder="移动力" id="in-move" value="6&quot;/步行" oninput="updateCard()">
+            <input type="text" placeholder="远程" id="in-range" value="+1骰" oninput="updateCard()">
+            <input type="text" placeholder="近战" id="in-melee" value="+1骰" oninput="updateCard()">
+        </div>
+        <div class="flex-row">
+            <input type="text" placeholder="护甲" id="in-armor" value="-0" oninput="updateCard()">
+            <input type="text" placeholder="底座" id="in-base" value="32mm" oninput="updateCard()">
+        </div>
+
+        <h2>特殊规则与能力</h2>
+        <label>装备描述</label>
+        <textarea id="in-equipment" style="height:60px;" oninput="updateCard()">耶尼切里可以使用铁壁苏丹国军械库中的任何军备。</textarea>
+
+        <label>能力列表</label>
+        <div id="abilities-container">
+            <!-- 动态能力框 -->
+        </div>
+        <button class="btn-add" onclick="addAbilityInput()">+ 新增一条能力</button>
+
+        <label>关键词</label>
+        <input type="text" id="in-keywords" value="苏丹国, 强壮" oninput="updateCard()">
+
+        <h2>立绘</h2>
+        <label>🖼️ 导入兵种立绘图片 (可选)</label>
+        <input type="file" id="in-image" accept="image/*" onchange="loadImage(event)">
+
+        <button class="btn-export" onclick="downloadImage()">💾 导出为图片</button>
+    </div>
+
+    <!-- 右侧渲染区 -->
+    <div class="preview-container">
+        <!-- 被截图的卡片主体 -->
+        <div class="card" id="capture-area">
+            
+            <div class="card-header">
+                <span class="card-limit" id="out-limit"></span>
+                <span class="card-name" id="out-name"></span>
+                <span class="card-separator">—</span>
+                <span class="card-cost">花费:<span id="out-cost" style="margin-left: 4px;"></span><span class="card-cost-icon" id="out-cost-icon"></span></span>
+            </div>
+
+            <div class="lore-text card-main-lore" id="out-lore"></div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>移动力</th>
+                        <th>远程修正</th>
+                        <th>近战修正</th>
+                        <th>护甲</th>
+                        <th>底座</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td id="out-move"></td>
+                        <td id="out-range"></td>
+                        <td id="out-melee"></td>
+                        <td id="out-armor"></td>
+                        <td id="out-base"></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-row">
+                <div class="info-label">装备</div>
+                <div class="info-content" id="out-equipment"></div>
+            </div>
+
+            <div class="info-row">
+                <div class="info-label">能力</div>
+                <div class="info-content" id="out-abilities">
+                    <!-- 动态能力渲染区 -->
+                </div>
+            </div>
+
+            <div class="info-row" style="margin-bottom: 0;">
+                <div class="info-label">关键词</div>
+                <div class="info-content" id="out-keywords"></div>
+            </div>
+
+            <!-- 可选的导入图片展示区 -->
+            <div class="card-image-container" id="out-image-container">
+                <img id="out-image" src="" alt="单位图片">
+            </div>
+
+            <!-- 底部水印 -->
+            <div class="watermark">made with TrenchCrusade DIY Builder</div>
+        </div>
+    </div>
+
+    <script>
+        let abilityIdCounter = 0;
+
+        // 初始化
+        window.onload = function() {
+            addAbilityInput('反冲锋:', '如果耶尼切里激活后的第一个动作是冲锋，则本次激活的近战攻击，伤害+1骰。', ''); 
+            updateCard();
+        };
+
+        // 新增能力输入框 (支持 Lore)
+        function addAbilityInput(defaultName = '', defaultDesc = '', defaultLore = '') {
+            abilityIdCounter++;
+            const id = abilityIdCounter;
+            
+            const html = `
+                <div class="ability-group" id="ability-group-${id}">
+                    <input type="text" id="ability-name-${id}" placeholder="能力名称 " value="${defaultName}" oninput="updateCard()" style="width: 70%; margin-bottom: 5px;">
+                    <button class="btn-del" onclick="removeAbility(${id})">删除</button>
+                    <textarea id="ability-lore-${id}" placeholder="能力背景 (选填)" oninput="updateCard()" style="height: 40px; margin-bottom: 5px;">${defaultLore}</textarea>
+                    <textarea id="ability-desc-${id}" placeholder="能力规则" oninput="updateCard()" style="height: 60px;">${defaultDesc}</textarea>
+                </div>
+            `;
+            document.getElementById('abilities-container').insertAdjacentHTML('beforeend', html);
+            if (defaultName === '') updateCard();
+        }
+
+        function removeAbility(id) {
+            document.getElementById(`ability-group-${id}`).remove();
+            updateCard();
+        }
+
+        // 处理本地图片加载
+        function loadImage(event) {
+            const file = event.target.files[0];
+            const imgContainer = document.getElementById('out-image-container');
+            const imgPreview = document.getElementById('out-image');
+
+            if (!file) {
+                imgContainer.style.display = 'none'; // 没传图片就隐藏该区域
+                imgPreview.src = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imgPreview.src = e.target.result;
+                imgContainer.style.display = 'block'; // 传了图片就显示出来
+            }
+            reader.readAsDataURL(file);
+        }
+
+        // 刷新卡片数据渲染
+        function updateCard() {
+            // 更新简单文本
+            const fields = ['limit', 'name', 'cost', 'lore', 'move', 'range', 'melee', 'armor', 'base', 'equipment', 'keywords'];
+            fields.forEach(field => {
+                document.getElementById(`out-${field}`).innerText = document.getElementById(`in-${field}`).value;
+            });
+
+            // 更新货币图标
+            document.getElementById('out-cost-icon').innerText = document.getElementById('in-currency').value;
+
+            // 更新动态能力
+            const outAbilities = document.getElementById('out-abilities');
+            outAbilities.innerHTML = ''; 
+            
+            const abilityGroups = document.querySelectorAll('.ability-group');
+            abilityGroups.forEach(group => {
+                const id = group.id.split('-')[2];
+                const name = document.getElementById(`ability-name-${id}`).value;
+                const lore = document.getElementById(`ability-lore-${id}`).value;
+                const desc = document.getElementById(`ability-desc-${id}`).value;
+                
+                if (name || desc || lore) {
+                    // 处理 Lore 逻辑：如果有 Lore，加上蓝色斜体标签，并跟两个非换行空格（&nbsp;&nbsp;）
+                    let loreHtml = '';
+                    if (lore.trim() !== '') {
+                        loreHtml = `<span class="lore-text">${lore}</span>&nbsp;&nbsp;`;
+                    }
+
+                    const itemHtml = `
+                        <div class="ability-item">
+                            <span class="ability-icon">†</span>
+                            <span class="ability-name">${name}</span>
+                            ${loreHtml}<span>${desc}</span>
+                        </div>
+                    `;
+                    outAbilities.insertAdjacentHTML('beforeend', itemHtml);
+                }
+            });
+        }
+
+        // 截图导出
+        function downloadImage() {
+            const captureArea = document.getElementById('capture-area');
+            const btn = document.querySelector('.btn-export');
+            const originalText = btn.innerText;
+            btn.innerText = "⏳ 正在生成图片...";
+            btn.disabled = true;
+
+            document.fonts.ready.then(() => {
+                html2canvas(captureArea, {
+                    scale: 3, // 3倍超高清晰度
+                    backgroundColor: "#ffffff",
+                    useCORS: true
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `${document.getElementById('in-name').value}_TrenchCrusade.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                }).catch(err => {
+                    console.error(err);
+                    alert("生成失败，请尝试换一张较小的图片或刷新网页。");
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                });
+            });
+        }
+    </script>
+</body>
+</html>
