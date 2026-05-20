@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trench Crusade Datasheet Builder</title>
+    <title>Trench Crusade 兵种卡生成器</title>
     
     <!-- 引入 html2canvas 用于截图 -->
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -101,7 +101,7 @@
         .card-header {
             display: flex;
             align-items: baseline;
-            margin-bottom: 12px;
+            margin-bottom: 8px; /* 缩小一点底边距，给派系留空间 */
             font-family: 'Merriweather', 'Noto Serif SC', serif;
             color: #000;
         }
@@ -110,6 +110,21 @@
         .card-separator { margin: 0 15px; font-weight: bold; font-size: 24px;}
         .card-cost { font-size: 22px; font-weight: 900; display: flex; align-items: baseline;}
         .card-cost-icon { font-size: 18px; margin-left: 4px; }
+
+        /* 新增：派系样式 */
+        .card-faction {
+            font-size: 15px;
+            font-weight: bold;
+            color: #666; /* 深灰色区分层级 */
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+            /* 稍微缩进一点对齐标题视觉中心 */
+            padding-left: 2px; 
+        }
+        /* 如果派系为空，则自动隐藏，不占高度 */
+        .card-faction:empty {
+            display: none;
+        }
 
         /* 背景故事/Lore 通用样式 (霞鹜文楷) */
         .lore-text {
@@ -150,12 +165,13 @@
         .card-image-container {
             margin-top: 20px;
             text-align: center;
-            display: none; /* 默认隐藏，上传图片后显示 */
+            display: none;
         }
         .card-image-container img {
             max-width: 100%;
             max-height: 450px;
             object-fit: contain;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
         }
 
         /* 水印 */
@@ -167,73 +183,58 @@
             font-family: 'Merriweather', sans-serif;
             font-style: italic;
         }
+
+        /* ========================================= */
         /* ======= 手机端适配 (响应式布局) ========= */
         /* ========================================= */
         @media (max-width: 768px) {
             body {
-                flex-direction: column; /* 左右排版改为上下堆叠 */
+                flex-direction: column; 
                 padding: 10px;
-                padding-bottom: 70px; /* 给底部的悬浮导出按钮留出空间 */
+                padding-bottom: 70px; /* 给悬浮按钮留出空间 */
                 gap: 15px;
             }
 
-            /* 1. 让左侧输入框占满手机屏幕 */
             .controls {
                 width: 100%;
                 min-width: unset;
-                max-height: none; /* 解除高度限制，让用户自然往下滑 */
+                max-height: none; 
                 padding: 15px;
                 box-sizing: border-box;
             }
+            .flex-row { flex-wrap: wrap; }
 
-            /* 移动力等小框在手机上自动换行 */
-            .flex-row {
-                flex-wrap: wrap; 
-            }
-
-            /* 2. 卡片预览区横向滑动处理 */
             .preview-container {
                 width: 100%;
                 min-width: unset;
-                overflow-x: auto; /* 核心：允许手指左右滑动卡片 */
+                overflow-x: auto; /* 允许手机端横向滑动 */
                 padding-bottom: 10px;
-                /* 隐藏滚动条让视觉更干净 (Webkit) */
                 -webkit-overflow-scrolling: touch; 
             }
-            .preview-container::-webkit-scrollbar {
-                height: 6px;
-            }
-            .preview-container::-webkit-scrollbar-thumb {
-                background: #ccc; border-radius: 3px;
-            }
+            .preview-container::-webkit-scrollbar { height: 6px; }
+            .preview-container::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
 
-            /* 给用户一个友好的横向滑动提示 */
+            /* 手机端滑动提示 */
             .preview-container::before {
-                content: "👉 提示：下方卡片可左右滑动预览全貌";
+                content: "👉 提示：下方卡片可左右滑动预览";
                 display: block;
                 color: #52c41a;
                 font-weight: bold;
                 font-size: 13px;
                 margin-bottom: 10px;
                 text-align: center;
-                width: 650px; /* 和卡片同宽 */
+                width: 650px; 
             }
 
             .card {
-                /* 卡片强制保持 650px，这是保证排版不被挤变形的关键！ */
-                min-width: 650px; 
+                min-width: 650px; /* 核心：在手机上强制卡片真实宽度不变 */
                 margin: 0; 
             }
 
-            /* 3. 修复手机端能力输入框的排版错位 */
-            .ability-group {
-                padding-top: 35px; /* 给右上角红色的删除按钮留出空间 */
-            }
-            .ability-group input[type="text"] {
-                width: 100% !important; 
-            }
+            .ability-group { padding-top: 35px; }
+            .ability-group input[type="text"] { width: 100% !important; }
 
-            /* 4. 手机端特供：底部悬浮导出按钮 */
+            /* 手机端底部悬浮按钮 */
             .btn-export {
                 position: fixed;
                 bottom: 0;
@@ -242,7 +243,7 @@
                 margin: 0;
                 border-radius: 0;
                 z-index: 9999;
-                box-shadow: 0 -4px 10px rgba(0,0,0,0.15); /* 按钮上方加一点阴影 */
+                box-shadow: 0 -4px 10px rgba(0,0,0,0.15);
             }
         }
     </style>
@@ -272,6 +273,9 @@
 
         <label>兵种名称</label>
         <input type="text" id="in-name" value="耶尼切里" oninput="updateCard()">
+
+        <label>可用派系 (选填)</label>
+        <input type="text" id="in-faction" value="仅限铁壁苏丹国" oninput="updateCard()">
         
         <label>背景故事 (Lore)</label>
         <textarea id="in-lore" style="height: 100px;" oninput="updateCard()">近卫军是苏丹国的精锐战士，从小就接受战争艺术的培养。他们是在对铁壁以北和以东荒凉边界的突击中被带回的，从小便接受严格的武术训练和思想灌输。在战场上，近卫军擅长发动毁灭性的反冲锋，粉碎敌人的精锐编队，并充当高级人物的护卫。</textarea>
@@ -300,8 +304,8 @@
         <label>关键词</label>
         <input type="text" id="in-keywords" value="苏丹国, 强壮" oninput="updateCard()">
 
-        <h2>立绘</h2>
-        <label>🖼️ 导入兵种立绘图片 (可选)</label>
+        <h2>立绘装饰</h2>
+        <label>🖼️ 导入立绘图片 (可选)</label>
         <input type="file" id="in-image" accept="image/*" onchange="loadImage(event)">
 
         <button class="btn-export" onclick="downloadImage()">💾 导出为图片</button>
@@ -318,6 +322,9 @@
                 <span class="card-separator">—</span>
                 <span class="card-cost">花费:<span id="out-cost" style="margin-left: 4px;"></span><span class="card-cost-icon" id="out-cost-icon"></span></span>
             </div>
+
+            <!-- 新增的派系图层 -->
+            <div class="card-faction" id="out-faction"></div>
 
             <div class="lore-text card-main-lore" id="out-lore"></div>
 
@@ -378,16 +385,16 @@
             updateCard();
         };
 
-        // 新增能力输入框 (支持 Lore)
+        // 新增能力输入框 
         function addAbilityInput(defaultName = '', defaultDesc = '', defaultLore = '') {
             abilityIdCounter++;
             const id = abilityIdCounter;
             
             const html = `
                 <div class="ability-group" id="ability-group-${id}">
-                    <input type="text" id="ability-name-${id}" placeholder="能力名称 " value="${defaultName}" oninput="updateCard()" style="width: 70%; margin-bottom: 5px;">
+                    <input type="text" id="ability-name-${id}" placeholder="能力名称 (如: 反冲锋:)" value="${defaultName}" oninput="updateCard()" style="width: 70%; margin-bottom: 5px;">
                     <button class="btn-del" onclick="removeAbility(${id})">删除</button>
-                    <textarea id="ability-lore-${id}" placeholder="能力背景 (选填)" oninput="updateCard()" style="height: 40px; margin-bottom: 5px;">${defaultLore}</textarea>
+                    <textarea id="ability-lore-${id}" placeholder="能力背景" oninput="updateCard()" style="height: 40px; margin-bottom: 5px;">${defaultLore}</textarea>
                     <textarea id="ability-desc-${id}" placeholder="能力规则" oninput="updateCard()" style="height: 60px;">${defaultDesc}</textarea>
                 </div>
             `;
@@ -407,7 +414,7 @@
             const imgPreview = document.getElementById('out-image');
 
             if (!file) {
-                imgContainer.style.display = 'none'; // 没传图片就隐藏该区域
+                imgContainer.style.display = 'none'; 
                 imgPreview.src = '';
                 return;
             }
@@ -415,15 +422,15 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 imgPreview.src = e.target.result;
-                imgContainer.style.display = 'block'; // 传了图片就显示出来
+                imgContainer.style.display = 'block'; 
             }
             reader.readAsDataURL(file);
         }
 
         // 刷新卡片数据渲染
         function updateCard() {
-            // 更新简单文本
-            const fields = ['limit', 'name', 'cost', 'lore', 'move', 'range', 'melee', 'armor', 'base', 'equipment', 'keywords'];
+            // 更新简单文本 (这里加入了 'faction')
+            const fields = ['limit', 'name', 'faction', 'cost', 'lore', 'move', 'range', 'melee', 'armor', 'base', 'equipment', 'keywords'];
             fields.forEach(field => {
                 document.getElementById(`out-${field}`).innerText = document.getElementById(`in-${field}`).value;
             });
@@ -443,7 +450,6 @@
                 const desc = document.getElementById(`ability-desc-${id}`).value;
                 
                 if (name || desc || lore) {
-                    // 处理 Lore 逻辑：如果有 Lore，加上蓝色斜体标签，并跟两个非换行空格（&nbsp;&nbsp;）
                     let loreHtml = '';
                     if (lore.trim() !== '') {
                         loreHtml = `<span class="lore-text">${lore}</span>&nbsp;&nbsp;`;
@@ -471,7 +477,7 @@
 
             document.fonts.ready.then(() => {
                 html2canvas(captureArea, {
-                    scale: 3, // 3倍超高清晰度
+                    scale: 3, 
                     backgroundColor: "#ffffff",
                     useCORS: true
                 }).then(canvas => {
