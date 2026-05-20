@@ -167,6 +167,84 @@
             font-family: 'Merriweather', sans-serif;
             font-style: italic;
         }
+        /* ======= 手机端适配 (响应式布局) ========= */
+        /* ========================================= */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column; /* 左右排版改为上下堆叠 */
+                padding: 10px;
+                padding-bottom: 70px; /* 给底部的悬浮导出按钮留出空间 */
+                gap: 15px;
+            }
+
+            /* 1. 让左侧输入框占满手机屏幕 */
+            .controls {
+                width: 100%;
+                min-width: unset;
+                max-height: none; /* 解除高度限制，让用户自然往下滑 */
+                padding: 15px;
+                box-sizing: border-box;
+            }
+
+            /* 移动力等小框在手机上自动换行 */
+            .flex-row {
+                flex-wrap: wrap; 
+            }
+
+            /* 2. 卡片预览区横向滑动处理 */
+            .preview-container {
+                width: 100%;
+                min-width: unset;
+                overflow-x: auto; /* 核心：允许手指左右滑动卡片 */
+                padding-bottom: 10px;
+                /* 隐藏滚动条让视觉更干净 (Webkit) */
+                -webkit-overflow-scrolling: touch; 
+            }
+            .preview-container::-webkit-scrollbar {
+                height: 6px;
+            }
+            .preview-container::-webkit-scrollbar-thumb {
+                background: #ccc; border-radius: 3px;
+            }
+
+            /* 给用户一个友好的横向滑动提示 */
+            .preview-container::before {
+                content: "👉 提示：下方卡片可左右滑动预览全貌";
+                display: block;
+                color: #52c41a;
+                font-weight: bold;
+                font-size: 13px;
+                margin-bottom: 10px;
+                text-align: center;
+                width: 650px; /* 和卡片同宽 */
+            }
+
+            .card {
+                /* 卡片强制保持 650px，这是保证排版不被挤变形的关键！ */
+                min-width: 650px; 
+                margin: 0; 
+            }
+
+            /* 3. 修复手机端能力输入框的排版错位 */
+            .ability-group {
+                padding-top: 35px; /* 给右上角红色的删除按钮留出空间 */
+            }
+            .ability-group input[type="text"] {
+                width: 100% !important; 
+            }
+
+            /* 4. 手机端特供：底部悬浮导出按钮 */
+            .btn-export {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                margin: 0;
+                border-radius: 0;
+                z-index: 9999;
+                box-shadow: 0 -4px 10px rgba(0,0,0,0.15); /* 按钮上方加一点阴影 */
+            }
+        }
     </style>
 </head>
 <body>
